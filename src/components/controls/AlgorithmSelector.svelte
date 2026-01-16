@@ -5,7 +5,11 @@
   const algorithms: { id: AlgorithmType; name: string; description: string }[] = [
     { id: 'scale-run', name: 'Scale Run', description: 'Ascending/descending patterns' },
     { id: 'arpeggio', name: 'Arpeggio', description: 'Chord-tone melodies' },
-    { id: 'motif', name: 'Motif', description: 'Developed musical idea' }
+    { id: 'motif', name: 'Motif', description: 'Developed musical idea' },
+    { id: 'bebop', name: 'Bebop', description: 'Enclosures and chromatic approaches' },
+    { id: 'call-response', name: 'Call/Response', description: 'Musical conversation patterns' },
+    { id: 'sequence', name: 'Sequence', description: 'Pattern transposed through scale' },
+    { id: 'blues', name: 'Blues', description: 'Blue notes, bends, and turnarounds' }
   ];
 </script>
 

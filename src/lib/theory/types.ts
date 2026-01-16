@@ -43,7 +43,7 @@ export interface Sequence {
   algorithm: AlgorithmType;
 }
 
-export type AlgorithmType = 'scale-run' | 'arpeggio' | 'motif';
+export type AlgorithmType = 'scale-run' | 'arpeggio' | 'motif' | 'bebop' | 'call-response' | 'sequence' | 'blues';
 
 // Generator configuration
 export interface GeneratorConfig {

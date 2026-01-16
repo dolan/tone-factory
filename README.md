@@ -6,10 +6,17 @@ A browser-based musical lick and melody generator with a piano roll editor, audi
 
 ## Features
 
-- **Smart Generation Algorithms**
-  - **Scale Runs** - Flowing melodic lines following scale patterns
-  - **Arpeggios** - Chord-tone based patterns with musical movement
-  - **Motif Development** - Generates and develops musical motifs with variations
+- **Smart Generation Algorithms** - Seven procedural generators based on music theory
+
+  | Algorithm | Description |
+  |-----------|-------------|
+  | **Scale Run** | Ascending and descending melodic lines following the selected scale with smooth contour |
+  | **Arpeggio** | Chord-tone based patterns that outline harmonies with musical movement |
+  | **Motif** | Generates a short musical idea then develops it with transposition, inversion, and rhythmic variation |
+  | **Bebop** | Jazz vocabulary with chromatic approach notes and enclosures targeting chord tones on strong beats |
+  | **Call/Response** | Musical conversation with question phrases answered by echo, mirror, or resolving responses |
+  | **Sequence** | A melodic pattern (turn, mordent, arch) transposed stepwise through the scale |
+  | **Blues** | Minor pentatonic with blue notes (b3, b5, b7), simulated bends, and turnaround endings |
 
 - **Piano Roll Editor**
   - Click to create notes
@@ -61,7 +68,7 @@ npm run build
 ## Usage
 
 1. **Configure your parameters** - Select key, scale, tempo, length, and rhythm feel
-2. **Choose an algorithm** - Pick from Scale Runs, Arpeggios, or Motif
+2. **Choose an algorithm** - Pick from Scale Run, Arpeggio, Motif, Bebop, Call/Response, Sequence, or Blues
 3. **Generate** - Click "Generate" to create a new lick
 4. **Edit** - Fine-tune notes in the piano roll
 5. **Regenerate Selection** - Select a region and regenerate just that portion

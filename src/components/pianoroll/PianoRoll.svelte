@@ -144,8 +144,12 @@
   }
 
   onMount(() => {
-    ctx = canvas.getContext('2d');
-    rulerCtx = rulerCanvas.getContext('2d');
+    if (canvas) {
+      ctx = canvas.getContext('2d');
+    }
+    if (rulerCanvas) {
+      rulerCtx = rulerCanvas.getContext('2d');
+    }
     resizeCanvas();
     scheduleRedraw();
   });
