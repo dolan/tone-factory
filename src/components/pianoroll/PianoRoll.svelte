@@ -11,8 +11,11 @@
   import type { Note } from '../../lib/theory/types';
 
   let canvas: HTMLCanvasElement;
+  let rulerCanvas: HTMLCanvasElement;
   let container: HTMLDivElement;
+  let scrollContainer: HTMLDivElement;
   let ctx: CanvasRenderingContext2D | null = null;
+  let rulerCtx: CanvasRenderingContext2D | null = null;
   let animationFrame: number | null = null;
   let needsRedraw = true;
 
@@ -38,7 +41,7 @@
   $: totalBeats = $lengthBars * 4;
   $: totalWidth = PIANO_WIDTH + totalBeats * BEAT_WIDTH;
   $: noteRange = maxMidi - minMidi + 1;
-  $: totalHeight = RULER_HEIGHT + noteRange * NOTE_HEIGHT;
+  $: totalHeight = noteRange * NOTE_HEIGHT;  // Ruler is now separate
   $: scaleNotes = getScaleNotes($key, $scale, [2, 6]);
 
   // Auto-fit view when notes change
@@ -87,7 +90,7 @@
     hasHadNotes = true;
 
     tick().then(() => {
-      if (!container || noteList.length === 0) return;
+      if (!scrollContainer || noteList.length === 0) return;
 
       // Skip auto-scroll if suppressed (e.g., during selection regeneration)
       if ($suppressAutoScroll) return;
@@ -95,23 +98,23 @@
       // Only auto-center on first generation
       if (isFirstGeneration) {
         const avgMidi = midiValues.reduce((a, b) => a + b, 0) / midiValues.length;
-        const targetY = midiToY(avgMidi) - container.clientHeight / 2;
-        container.scrollTo({
+        const targetY = midiToY(avgMidi) - scrollContainer.clientHeight / 2;
+        scrollContainer.scrollTo({
           top: Math.max(0, targetY),
           behavior: 'smooth'
         });
       } else if (rangeChanged) {
         // If range changed but not first generation, use smooth scroll
         // to gently adjust if needed (keep current view if possible)
-        const currentCenter = container.scrollTop + container.clientHeight / 2;
+        const currentCenter = scrollContainer.scrollTop + scrollContainer.clientHeight / 2;
         // Only scroll if current view is significantly off
         const avgMidi = midiValues.reduce((a, b) => a + b, 0) / midiValues.length;
-        const targetY = midiToY(avgMidi) - container.clientHeight / 2;
+        const targetY = midiToY(avgMidi) - scrollContainer.clientHeight / 2;
         const diff = Math.abs(currentCenter - targetY);
 
         // Only smooth scroll if view needs significant adjustment
-        if (diff > container.clientHeight) {
-          container.scrollTo({
+        if (diff > scrollContainer.clientHeight) {
+          scrollContainer.scrollTo({
             top: Math.max(0, targetY),
             behavior: 'smooth'
           });
@@ -142,6 +145,7 @@
 
   onMount(() => {
     ctx = canvas.getContext('2d');
+    rulerCtx = rulerCanvas.getContext('2d');
     resizeCanvas();
     scheduleRedraw();
   });
@@ -165,13 +169,19 @@
   }
 
   function resizeCanvas() {
-    if (!canvas) return;
+    if (!canvas || !rulerCanvas) return;
     const newWidth = totalWidth;
     const newHeight = totalHeight;
 
     if (canvas.width !== newWidth || canvas.height !== newHeight) {
       canvas.width = newWidth;
       canvas.height = newHeight;
+      needsRedraw = true;
+    }
+
+    if (rulerCanvas.width !== newWidth || rulerCanvas.height !== RULER_HEIGHT) {
+      rulerCanvas.width = newWidth;
+      rulerCanvas.height = RULER_HEIGHT;
       needsRedraw = true;
     }
   }
@@ -195,11 +205,24 @@
   }
 
   function drawRuler() {
-    if (!ctx) return;
+    if (!rulerCtx) return;
+
+    // Clear ruler
+    rulerCtx.fillStyle = '#1a1a2e';
+    rulerCtx.fillRect(0, 0, rulerCanvas.width, RULER_HEIGHT);
 
     // Ruler background
-    ctx.fillStyle = '#252538';
-    ctx.fillRect(PIANO_WIDTH, 0, totalWidth - PIANO_WIDTH, RULER_HEIGHT);
+    rulerCtx.fillStyle = '#252538';
+    rulerCtx.fillRect(PIANO_WIDTH, 0, totalWidth - PIANO_WIDTH, RULER_HEIGHT);
+
+    // Draw selection highlight on ruler first (so it's behind everything)
+    if ($normalizedSelection) {
+      const startX = beatToX($normalizedSelection.start);
+      const endX = beatToX($normalizedSelection.end);
+      const width = endX - startX;
+      rulerCtx.fillStyle = 'rgba(233, 69, 96, 0.4)';
+      rulerCtx.fillRect(startX, 0, width, RULER_HEIGHT);
+    }
 
     // Draw beat markers
     for (let beat = 0; beat <= totalBeats; beat++) {
@@ -208,36 +231,72 @@
       const isHalfBar = beat % 2 === 0;
 
       // Tick marks
-      ctx.strokeStyle = isBarLine ? '#888' : '#555';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, isBarLine ? 4 : (isHalfBar ? 10 : 14));
-      ctx.lineTo(x, RULER_HEIGHT);
-      ctx.stroke();
+      rulerCtx.strokeStyle = isBarLine ? '#888' : '#555';
+      rulerCtx.lineWidth = 1;
+      rulerCtx.beginPath();
+      rulerCtx.moveTo(x, isBarLine ? 4 : (isHalfBar ? 10 : 14));
+      rulerCtx.lineTo(x, RULER_HEIGHT);
+      rulerCtx.stroke();
 
       // Bar numbers
       if (isBarLine) {
-        ctx.fillStyle = '#aaa';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillText(`${beat / 4 + 1}`, x + 4, 16);
+        rulerCtx.fillStyle = '#aaa';
+        rulerCtx.font = 'bold 11px sans-serif';
+        rulerCtx.fillText(`${beat / 4 + 1}`, x + 4, 16);
+      }
+    }
+
+    // Draw selection handles on ruler
+    if ($normalizedSelection) {
+      const startX = beatToX($normalizedSelection.start);
+      const endX = beatToX($normalizedSelection.end);
+
+      // Start handle
+      rulerCtx.fillStyle = '#e94560';
+      rulerCtx.beginPath();
+      rulerCtx.moveTo(startX, 0);
+      rulerCtx.lineTo(startX + 8, 0);
+      rulerCtx.lineTo(startX, RULER_HEIGHT);
+      rulerCtx.closePath();
+      rulerCtx.fill();
+
+      // End handle
+      rulerCtx.beginPath();
+      rulerCtx.moveTo(endX, 0);
+      rulerCtx.lineTo(endX - 8, 0);
+      rulerCtx.lineTo(endX, RULER_HEIGHT);
+      rulerCtx.closePath();
+      rulerCtx.fill();
+    }
+
+    // Draw playhead on ruler
+    if ($sequence) {
+      const x = timeToX($currentTime);
+      if (x >= PIANO_WIDTH && x <= totalWidth) {
+        rulerCtx.strokeStyle = '#4ade80';
+        rulerCtx.lineWidth = 2;
+        rulerCtx.beginPath();
+        rulerCtx.moveTo(x, 0);
+        rulerCtx.lineTo(x, RULER_HEIGHT);
+        rulerCtx.stroke();
       }
     }
 
     // Ruler border
-    ctx.strokeStyle = '#4a4a5e';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(PIANO_WIDTH, RULER_HEIGHT);
-    ctx.lineTo(totalWidth, RULER_HEIGHT);
-    ctx.stroke();
+    rulerCtx.strokeStyle = '#4a4a5e';
+    rulerCtx.lineWidth = 1;
+    rulerCtx.beginPath();
+    rulerCtx.moveTo(PIANO_WIDTH, RULER_HEIGHT - 1);
+    rulerCtx.lineTo(totalWidth, RULER_HEIGHT - 1);
+    rulerCtx.stroke();
 
     // Label area
-    ctx.fillStyle = '#1e1e2e';
-    ctx.fillRect(0, 0, PIANO_WIDTH, RULER_HEIGHT);
-    ctx.fillStyle = '#888';
-    ctx.font = '9px sans-serif';
-    ctx.fillText('SHIFT+drag', 4, 10);
-    ctx.fillText('to select', 4, 20);
+    rulerCtx.fillStyle = '#1e1e2e';
+    rulerCtx.fillRect(0, 0, PIANO_WIDTH, RULER_HEIGHT);
+    rulerCtx.fillStyle = '#888';
+    rulerCtx.font = '9px sans-serif';
+    rulerCtx.fillText('Drag ruler', 4, 10);
+    rulerCtx.fillText('to select', 4, 20);
   }
 
   function drawSelection() {
@@ -247,13 +306,9 @@
     const endX = beatToX($normalizedSelection.end);
     const width = endX - startX;
 
-    // Selection highlight on grid
+    // Selection highlight on grid (ruler is separate now)
     ctx.fillStyle = 'rgba(233, 69, 96, 0.15)';
-    ctx.fillRect(startX, RULER_HEIGHT, width, totalHeight - RULER_HEIGHT);
-
-    // Selection on ruler
-    ctx.fillStyle = 'rgba(233, 69, 96, 0.4)';
-    ctx.fillRect(startX, 0, width, RULER_HEIGHT);
+    ctx.fillRect(startX, 0, width, totalHeight);
   }
 
   function drawSelectionHandles() {
@@ -262,35 +317,18 @@
     const startX = beatToX($normalizedSelection.start);
     const endX = beatToX($normalizedSelection.end);
 
-    // Start handle
-    ctx.fillStyle = '#e94560';
-    ctx.beginPath();
-    ctx.moveTo(startX, 0);
-    ctx.lineTo(startX + 8, 0);
-    ctx.lineTo(startX, RULER_HEIGHT);
-    ctx.closePath();
-    ctx.fill();
-
-    // End handle
-    ctx.beginPath();
-    ctx.moveTo(endX, 0);
-    ctx.lineTo(endX - 8, 0);
-    ctx.lineTo(endX, RULER_HEIGHT);
-    ctx.closePath();
-    ctx.fill();
-
-    // Vertical lines
+    // Vertical lines on grid (handles are drawn on ruler canvas)
     ctx.strokeStyle = '#e94560';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
 
     ctx.beginPath();
-    ctx.moveTo(startX, RULER_HEIGHT);
+    ctx.moveTo(startX, 0);
     ctx.lineTo(startX, totalHeight);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(endX, RULER_HEIGHT);
+    ctx.moveTo(endX, 0);
     ctx.lineTo(endX, totalHeight);
     ctx.stroke();
 
@@ -322,7 +360,7 @@
       ctx.strokeStyle = isBarLine ? '#4a4a5e' : '#2a2a3e';
       ctx.lineWidth = isBarLine ? 1.5 : 0.5;
       ctx.beginPath();
-      ctx.moveTo(x, RULER_HEIGHT);
+      ctx.moveTo(x, 0);
       ctx.lineTo(x, totalHeight);
       ctx.stroke();
     }
@@ -352,7 +390,7 @@
     ctx.strokeStyle = '#4a4a5e';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(PIANO_WIDTH, RULER_HEIGHT);
+    ctx.moveTo(PIANO_WIDTH, 0);
     ctx.lineTo(PIANO_WIDTH, totalHeight);
     ctx.stroke();
   }
@@ -412,13 +450,13 @@
     ctx.stroke();
   }
 
-  // Coordinate conversions (account for ruler height)
+  // Coordinate conversions (ruler is now separate)
   function midiToY(midi: number): number {
-    return RULER_HEIGHT + (maxMidi - midi) * NOTE_HEIGHT;
+    return (maxMidi - midi) * NOTE_HEIGHT;
   }
 
   function yToMidi(y: number): number {
-    return Math.round(maxMidi - (y - RULER_HEIGHT) / NOTE_HEIGHT);
+    return Math.round(maxMidi - y / NOTE_HEIGHT);
   }
 
   function beatToX(beat: number): number {
@@ -452,23 +490,68 @@
     };
   }
 
+  function getRulerCoords(e: MouseEvent): { x: number } {
+    const rect = rulerCanvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left
+    };
+  }
+
+  // Ruler mouse handlers
+  function handleRulerMouseDown(e: MouseEvent) {
+    const { x } = getRulerCoords(e);
+    if (x < PIANO_WIDTH) return;
+
+    e.preventDefault();
+    dragging = true;
+    dragType = 'select';
+    dragStartX = x;
+
+    const actualX = x + scrollContainer.scrollLeft;
+    const beat = Math.max(0, Math.round(xToBeat(actualX) * 4) / 4);
+    selectionStart.set(beat);
+    selectionEnd.set(beat);
+    scheduleRedraw();
+  }
+
+  function handleRulerMouseMove(e: MouseEvent) {
+    if (!dragging || dragType !== 'select') return;
+
+    const { x } = getRulerCoords(e);
+    const actualX = x + scrollContainer.scrollLeft;
+    const beat = Math.max(0, Math.min(totalBeats, Math.round(xToBeat(actualX) * 4) / 4));
+    selectionEnd.set(beat);
+    scheduleRedraw();
+  }
+
+  function handleRulerMouseUp() {
+    if (dragType === 'select') {
+      dragging = false;
+      dragType = null;
+    }
+  }
+
+  // Sync horizontal scroll between ruler and grid
+  function handleScroll() {
+    if (rulerCanvas && scrollContainer) {
+      rulerCanvas.style.transform = `translateX(-${scrollContainer.scrollLeft}px)`;
+    }
+  }
+
   function handleMouseDown(e: MouseEvent) {
     const { x, y } = getCanvasCoords(e);
 
     // Check if clicking on piano keys area (left side with note labels)
     if (x < PIANO_WIDTH) return;
 
-    // Get the actual canvas Y position accounting for container scroll
-    const actualCanvasY = y + container.scrollTop;
-
-    // Shift+click or clicking in ruler (top 24px of canvas) = selection mode
-    if (e.shiftKey || actualCanvasY <= RULER_HEIGHT) {
+    // Shift+click = selection mode on grid
+    if (e.shiftKey) {
       e.preventDefault();
       dragging = true;
       dragType = 'select';
       dragStartX = x;
       // Also account for horizontal scroll when calculating beat
-      const actualCanvasX = x + container.scrollLeft;
+      const actualCanvasX = x + scrollContainer.scrollLeft;
       const beat = Math.max(0, Math.round(xToBeat(actualCanvasX) * 4) / 4);
       selectionStart.set(beat);
       selectionEnd.set(beat);
@@ -525,7 +608,7 @@
     const { x, y } = getCanvasCoords(e);
 
     if (dragType === 'select') {
-      const actualCanvasX = x + container.scrollLeft;
+      const actualCanvasX = x + scrollContainer.scrollLeft;
       const beat = Math.max(0, Math.min(totalBeats, Math.round(xToBeat(actualCanvasX) * 4) / 4));
       selectionEnd.set(beat);
       scheduleRedraw();
@@ -625,24 +708,58 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <div class="piano-roll-container" bind:this={container}>
-  <canvas
-    bind:this={canvas}
-    onmousedown={handleMouseDown}
-    onmousemove={handleMouseMove}
-    onmouseup={handleMouseUp}
-    onmouseleave={handleMouseUp}
-  ></canvas>
+  <!-- Ruler (fixed at top, syncs horizontal scroll) -->
+  <div class="ruler-wrapper">
+    <canvas
+      bind:this={rulerCanvas}
+      class="ruler-canvas"
+      onmousedown={handleRulerMouseDown}
+      onmousemove={handleRulerMouseMove}
+      onmouseup={handleRulerMouseUp}
+      onmouseleave={handleRulerMouseUp}
+    ></canvas>
+  </div>
+
+  <!-- Scrollable piano roll -->
+  <div class="scroll-container" bind:this={scrollContainer} onscroll={handleScroll}>
+    <canvas
+      bind:this={canvas}
+      onmousedown={handleMouseDown}
+      onmousemove={handleMouseMove}
+      onmouseup={handleMouseUp}
+      onmouseleave={handleMouseUp}
+    ></canvas>
+  </div>
 </div>
 
 <style>
   .piano-roll-container {
-    overflow: auto;
-    scroll-behavior: smooth;
     border: 1px solid var(--grid-line);
     border-radius: 8px;
     background: var(--bg-secondary);
-    max-height: 400px;
-    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    max-height: 424px;
+    min-height: 324px;
+  }
+
+  .ruler-wrapper {
+    height: 24px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #252538;
+    border-bottom: 1px solid var(--grid-line);
+  }
+
+  .ruler-canvas {
+    display: block;
+    cursor: col-resize;
+  }
+
+  .scroll-container {
+    flex: 1;
+    overflow: auto;
+    scroll-behavior: smooth;
   }
 
   canvas {
