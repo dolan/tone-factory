@@ -92,17 +92,18 @@
     color: var(--text-primary);
     padding: 10px 16px;
     font-size: 14px;
-    border: 1px solid transparent;
-    transition: all 0.2s;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.15s ease;
   }
 
   .regen-btn:hover:not(:disabled) {
-    background: #e94560;
+    background: var(--accent);
     color: white;
-    border-color: #e94560;
+    border-color: var(--accent);
   }
 
   .regen-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 </style>

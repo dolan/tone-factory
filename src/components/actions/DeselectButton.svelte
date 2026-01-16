@@ -23,19 +23,20 @@
     gap: 6px;
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    padding: 8px 12px;
-    font-size: 13px;
-    border: 1px solid transparent;
-    transition: all 0.2s;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.15s ease;
   }
 
   .deselect-btn:hover:not(:disabled) {
-    background: var(--bg-secondary);
-    border-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .deselect-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 
   .deselect-btn svg {

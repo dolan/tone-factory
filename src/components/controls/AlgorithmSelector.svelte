@@ -14,7 +14,6 @@
 </script>
 
 <div class="control">
-  <label>Algorithm</label>
   <div class="algorithm-buttons">
     {#each algorithms as alg}
       <button
@@ -37,22 +36,29 @@
 
   .algorithm-buttons {
     display: flex;
-    gap: 4px;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   button {
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    padding: 6px 12px;
+    padding: 8px 14px;
     font-size: 13px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
   }
 
   button:hover {
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   button.active {
     background: var(--accent);
     color: white;
+    border-color: var(--accent);
   }
 </style>

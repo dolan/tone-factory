@@ -21,9 +21,17 @@
     color: var(--text-primary);
     padding: 10px 20px;
     font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.15s ease;
   }
 
   .export-btn:hover:not(:disabled) {
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .export-btn:disabled {
+    opacity: 0.35;
   }
 </style>
