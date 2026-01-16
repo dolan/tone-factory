@@ -23,6 +23,7 @@
   <header>
     <h1>Tone Factory</h1>
     <p class="subtitle">Musical Lick Generator</p>
+    <p class="tagline">Generate Music using Theory, Not AI</p>
   </header>
 
   <main>
@@ -123,6 +124,14 @@
   .subtitle {
     color: var(--text-secondary);
     font-size: 15px;
+  }
+
+  .tagline {
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 6px;
+    opacity: 0.7;
+    letter-spacing: 0.5px;
   }
 
   main {
