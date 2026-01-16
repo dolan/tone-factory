@@ -6,7 +6,7 @@ import { getScaleNotes } from '../lib/theory/scales';
 export const key = writable<string>('C');
 export const scale = writable<string>('pentatonic-minor');
 export const tempo = writable<number>(120);
-export const lengthBars = writable<number>(2);
+export const lengthBars = writable<number>(4);
 export const algorithm = writable<AlgorithmType>('scale-run');
 export const rhythmFeel = writable<'straight' | 'swing' | 'syncopated'>('straight');
 export const octaveRange = writable<[number, number]>([3, 5]);
