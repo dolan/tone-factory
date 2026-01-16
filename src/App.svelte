@@ -11,6 +11,7 @@
   import GenerateButton from './components/actions/GenerateButton.svelte';
   import ExportButton from './components/actions/ExportButton.svelte';
   import RegenerateSelectionButton from './components/actions/RegenerateSelectionButton.svelte';
+  import DeselectButton from './components/actions/DeselectButton.svelte';
   import PianoRoll from './components/pianoroll/PianoRoll.svelte';
 
   import { sequence } from './stores/sequence';
@@ -44,6 +45,7 @@
       <div class="actions">
         <GenerateButton />
         <RegenerateSelectionButton />
+        <DeselectButton />
         <TransportBar />
         <ExportButton />
       </div>
